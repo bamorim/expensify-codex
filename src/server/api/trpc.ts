@@ -7,6 +7,8 @@
  * need to use are documented accordingly near the end.
  */
 
+import { OrganizationRole } from "@prisma/client";
+import type { Session } from "next-auth";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
@@ -121,13 +123,61 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
 export const protectedProcedure = t.procedure
   .use(timingMiddleware)
   .use(({ ctx, next }) => {
-    if (!ctx.session?.user) {
+    const session = ctx.session;
+
+    if (!session?.user) {
       throw new TRPCError({ code: "UNAUTHORIZED" });
     }
     return next({
       ctx: {
+        ...ctx,
         // infers the `session` as non-nullable
-        session: { ...ctx.session, user: ctx.session.user },
+        session: { ...session, user: session.user },
       },
     });
   });
+
+type ContextWithSession = {
+  session: Session;
+  db: typeof db;
+};
+
+export const requireOrganizationMembership = async (
+  ctx: ContextWithSession,
+  organizationId: string,
+) => {
+  const membership = await ctx.db.membership.findUnique({
+    where: {
+      userId_organizationId: {
+        userId: ctx.session.user.id,
+        organizationId,
+      },
+    },
+    include: { organization: true },
+  });
+
+  if (!membership) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "You are not a member of this organization",
+    });
+  }
+
+  return { membership, organization: membership.organization };
+};
+
+export const requireOrganizationAdmin = async (
+  ctx: ContextWithSession,
+  organizationId: string,
+) => {
+  const result = await requireOrganizationMembership(ctx, organizationId);
+
+  if (result.membership.role !== OrganizationRole.ADMIN) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Admin role required for this action",
+    });
+  }
+
+  return result;
+};
