@@ -68,6 +68,7 @@ model Organization {
   createdBy    User         @relation("OrganizationsCreated", fields: [createdById], references: [id])
   memberships  Membership[]
   invitations  Invitation[]
+  categories   ExpenseCategory[]
 
   @@index([createdById])
 }
@@ -104,6 +105,20 @@ model Invitation {
   acceptedBy   User?        @relation("InvitationsAccepted", fields: [acceptedById], references: [id])
 
   @@index([organizationId, email])
+}
+
+model ExpenseCategory {
+  id             String    @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, name])
+  @@index([organizationId, name])
 }
 
 model VerificationToken {

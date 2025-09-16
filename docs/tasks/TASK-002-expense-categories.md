@@ -4,10 +4,10 @@
 
 - **Task ID**: `TASK-002`
 - **Title**: Implement organization-scoped expense categories
-- **Status**: Not Started
+- **Status**: Ready for Review
 - **Priority**: P0
 - **Created**: 2025-09-16
-- **Updated**: 2025-09-16
+- **Updated**: 2025-09-17
 - **Estimated Effort**: 1 week
 - **Actual Effort**: TBD
 
@@ -23,20 +23,20 @@ Deliver CRUD capabilities for expense categories that are scoped to organization
 
 ## Acceptance Criteria
 
-- [ ] Admin UI/API to create, update, and delete categories within an organization
-- [ ] Category data model enforces organization ownership and optional description
-- [ ] Category listing filtered by current organization context
-- [ ] Validation prevents duplicate category names per organization
-- [ ] Automated tests cover category CRUD and authorization paths
+- [x] Admin UI/API to create, update, and delete categories within an organization
+- [x] Category data model enforces organization ownership and optional description
+- [x] Category listing filtered by current organization context
+- [x] Validation prevents duplicate category names per organization
+- [x] Automated tests cover category CRUD and authorization paths
 
 ## TODOs
 
-- [ ] Extend Prisma schema with category model and organization foreign key
-- [ ] Build tRPC procedures for category CRUD with role checks
-- [ ] Create basic UI components/forms for category management
-- [ ] Add validation to prevent duplicates and handle optional description
-- [ ] Write unit/integration tests covering success and failure cases
-- [ ] Update documentation to explain category usage in expenses
+- [x] Extend Prisma schema with category model and organization foreign key
+- [x] Build tRPC procedures for category CRUD with role checks
+- [x] Create basic UI components/forms for category management
+- [x] Add validation to prevent duplicates and handle optional description
+- [x] Write unit/integration tests covering success and failure cases
+- [x] Update documentation to explain category usage in expenses
 
 ## Progress Updates
 
@@ -46,12 +46,18 @@ Deliver CRUD capabilities for expense categories that are scoped to organization
 **Blockers**: Depends on completion of organization onboarding flows
 **Next Steps**: Design schema and APIs once TASK-001 is underway
 
+### 2025-09-17 - Team
+**Status**: Ready for Review
+**Progress**: Added `ExpenseCategory` Prisma model and migration with organization ownership and uniqueness constraints. Delivered tRPC router enforcing membership/admin rules for category CRUD along with comprehensive Vitest coverage. Extended the organization admin dashboard to manage categories (create, edit, delete) with inline validation and optimistic UI refresh. Updated README and task documentation to reflect new capabilities and testing steps.
+**Blockers**: None
+**Next Steps**: Gather UX feedback on category management flows and align with upcoming policy work.
+
 ## Completion Checklist
 
-- [ ] All acceptance criteria met
-- [ ] Code follows project standards
-- [ ] Tests written and passing
-- [ ] Documentation updated (if needed)
+- [x] All acceptance criteria met
+- [x] Code follows project standards
+- [x] Tests written and passing
+- [x] Documentation updated (if needed)
 - [ ] Code review completed
 
 ## Notes
@@ -61,4 +67,4 @@ Coordinate form patterns with broader design system to maintain consistency acro
 ---
 
 **Template Version**: 1.0
-**Last Updated**: 2025-09-16
+**Last Updated**: 2025-09-17

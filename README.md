@@ -8,6 +8,7 @@ user authentication, organization onboarding, and invitation workflows.
 - 🔐 Magic-link email authentication powered by NextAuth and Nodemailer
 - 🏢 Organization creation with automatic admin membership
 - 👥 Role-based invitations and acceptance flows for members and admins
+- 🗂️ Organization-scoped expense categories with admin-managed CRUD
 - 🛡️ Organization-scoped authorization middleware that enforces data isolation
 - ⚙️ Fully typed API layer using Prisma and tRPC
 
@@ -67,8 +68,9 @@ pnpm test         # Run Vitest integration suite
 
 ## Project Structure Highlights
 
-- `prisma/` – Prisma schema and migrations for organizations, memberships, and invitations
+- `prisma/` – Prisma schema and migrations for organizations, memberships, invitations, and categories
 - `src/server/api/routers/organization.ts` – tRPC handlers for onboarding flows
+- `src/server/api/routers/category.ts` – Expense category CRUD procedures with role enforcement
 - `src/app/_components/organization-dashboard.tsx` – Client UI for organization management
 - `docs/tasks/` – Task tracking and product documentation
 

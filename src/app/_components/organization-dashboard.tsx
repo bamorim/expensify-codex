@@ -205,7 +205,9 @@ function OrganizationAdminPanel({ membership }: { membership: Membership }) {
   };
 
   return (
-    <div className="mt-6 space-y-6 border-t border-white/10 pt-6">
+    <div className="mt-6 space-y-8 border-t border-white/10 pt-6">
+      <OrganizationCategoriesPanel organizationId={membership.organizationId} />
+
       <form
         onSubmit={handleInvite}
         className="flex flex-col gap-3 sm:flex-row sm:items-end"
@@ -318,6 +320,281 @@ function InvitationItem({
         </div>
       </div>
     </li>
+  );
+}
+
+function OrganizationCategoriesPanel({
+  organizationId,
+}: {
+  organizationId: string;
+}) {
+  const utils = api.useUtils();
+  const { data: categories, isLoading } = api.category.list.useQuery({
+    organizationId,
+  });
+
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
+
+  const invalidateCategories = async () => {
+    await utils.category.list.invalidate({ organizationId });
+  };
+
+  const createCategory = api.category.create.useMutation({
+    onSuccess: async () => {
+      setName("");
+      setDescription("");
+      setError(null);
+      setFeedback("Category created");
+      await invalidateCategories();
+    },
+    onError: (mutationError) => {
+      setFeedback(null);
+      setError(mutationError.message);
+    },
+  });
+
+  const updateCategory = api.category.update.useMutation({
+    onSuccess: async () => {
+      setEditingId(null);
+      setEditName("");
+      setEditDescription("");
+      setEditError(null);
+      await invalidateCategories();
+    },
+    onError: (mutationError) => {
+      setEditError(mutationError.message);
+    },
+  });
+
+  const deleteCategory = api.category.delete.useMutation({
+    onSuccess: async (_, variables) => {
+      if (editingId === variables.categoryId) {
+        setEditingId(null);
+        setEditName("");
+        setEditDescription("");
+        setEditError(null);
+      }
+      await invalidateCategories();
+    },
+    onError: (mutationError) => {
+      setEditError(mutationError.message);
+    },
+  });
+
+  const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setFeedback(null);
+    setError(null);
+
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setError("Category name is required");
+      return;
+    }
+
+    await createCategory.mutateAsync({
+      organizationId,
+      name: trimmedName,
+      description: description.trim() ? description.trim() : undefined,
+    });
+  };
+
+  const startEditing = (category: RouterOutputs["category"]["list"][number]) => {
+    setEditingId(category.id);
+    setEditName(category.name);
+    setEditDescription(category.description ?? "");
+    setEditError(null);
+  };
+
+  const handleEditSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingId) return;
+
+    const trimmedName = editName.trim();
+    if (!trimmedName) {
+      setEditError("Category name is required");
+      return;
+    }
+
+    setEditError(null);
+
+    await updateCategory.mutateAsync({
+      organizationId,
+      categoryId: editingId,
+      name: trimmedName,
+      description: editDescription.trim() ? editDescription.trim() : undefined,
+    });
+  };
+
+  const handleDelete = async (categoryId: string) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this category?",
+    );
+    if (!confirmed) return;
+
+    await deleteCategory.mutateAsync({
+      organizationId,
+      categoryId,
+    });
+  };
+
+  return (
+    <section>
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h4 className="text-lg font-medium text-white">Expense categories</h4>
+          <p className="text-sm text-white/70">
+            Manage the categories available when submitting expenses.
+          </p>
+        </div>
+      </div>
+
+      <form
+        onSubmit={handleCreate}
+        className="mb-4 grid gap-3 rounded-lg border border-white/10 bg-white/5 p-4 sm:grid-cols-[minmax(0,250px),minmax(0,1fr),auto]"
+      >
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-white/80" htmlFor="category-name">
+            Name
+          </label>
+          <input
+            id="category-name"
+            type="text"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="e.g. Travel"
+            className="w-full rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-white placeholder:text-white/60 focus:border-white focus:outline-none"
+            required
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-white/80" htmlFor="category-description">
+            Description (optional)
+          </label>
+          <input
+            id="category-description"
+            type="text"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="Add context for submitters"
+            className="w-full rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-white placeholder:text-white/60 focus:border-white focus:outline-none"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={createCategory.isPending}
+          className="mt-6 inline-flex items-center justify-center rounded-full bg-blue-500 px-5 py-2 font-semibold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:bg-blue-500/60 sm:mt-0"
+        >
+          {createCategory.isPending ? "Adding…" : "Add"}
+        </button>
+      </form>
+      <div className="min-h-[1.25rem] text-sm">
+        {error && <p className="text-red-300">{error}</p>}
+        {feedback && <p className="text-emerald-300">{feedback}</p>}
+      </div>
+
+      {isLoading ? (
+        <p className="text-white/70">Loading categories…</p>
+      ) : categories && categories.length > 0 ? (
+        <ul className="space-y-3">
+          {categories.map((category) => (
+            <li
+              key={category.id}
+              className="rounded-lg border border-white/10 bg-white/5 p-4"
+            >
+              {editingId === category.id ? (
+                <form className="space-y-3" onSubmit={handleEditSubmit}>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-white/80" htmlFor={`edit-name-${category.id}`}>
+                      Name
+                    </label>
+                    <input
+                      id={`edit-name-${category.id}`}
+                      type="text"
+                      value={editName}
+                      onChange={(event) => setEditName(event.target.value)}
+                      className="w-full rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-white focus:border-white focus:outline-none"
+                      required
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-white/80" htmlFor={`edit-description-${category.id}`}>
+                      Description (optional)
+                    </label>
+                    <input
+                      id={`edit-description-${category.id}`}
+                      type="text"
+                      value={editDescription}
+                      onChange={(event) => setEditDescription(event.target.value)}
+                      className="w-full rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-white focus:border-white focus:outline-none"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="submit"
+                      disabled={updateCategory.isPending}
+                      className="inline-flex items-center rounded-full bg-emerald-500 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-emerald-500/60"
+                    >
+                      {updateCategory.isPending ? "Saving…" : "Save"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingId(null);
+                        setEditError(null);
+                      }}
+                      className="inline-flex items-center rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-white/20"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  {editError && (
+                    <p className="text-sm text-red-300">{editError}</p>
+                  )}
+                </form>
+              ) : (
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-medium text-white">{category.name}</p>
+                    {category.description ? (
+                      <p className="text-sm text-white/70">{category.description}</p>
+                    ) : (
+                      <p className="text-sm text-white/40">No description</p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => startEditing(category)}
+                      className="inline-flex items-center rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-white/20"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDelete(category.id)}
+                      disabled={deleteCategory.isPending}
+                      className="inline-flex items-center rounded-full bg-red-500/80 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-red-400 disabled:cursor-not-allowed disabled:bg-red-500/60"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-white/70">No categories yet. Create one to get started.</p>
+      )}
+    </section>
   );
 }
 
